@@ -40,7 +40,9 @@ class GitHubAuthorizeUrlView(APIView):
                 {
                     "configured": False,
                     "detail": "GitHub OAuth is not configured. Set GITHUB_CLIENT_ID and "
-                    "GITHUB_CLIENT_SECRET in .env and restart the backend.",
+                    "GITHUB_CLIENT_SECRET in .env, then recreate the container with "
+                    "`docker compose up -d backend` (a plain restart reuses the old "
+                    "environment).",
                     "code": "oauth_not_configured",
                 },
                 status=status.HTTP_200_OK,

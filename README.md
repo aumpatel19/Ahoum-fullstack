@@ -58,6 +58,11 @@ That single command builds both images, waits for Postgres to actually answer (n
 
 The catalogue is populated on first run — 8 sessions from 2 demo creators, one of them already in the past and one with a single seat — so the app is not an empty shell on arrival. Demo accounts exist in the database but have no passwords: **sign in with your own GitHub account.** To look around as a creator, pick "I'm here to host" on the one-time role screen after your first sign-in.
 
+> **Editing `.env` after the stack is already up?** Use `docker compose up -d backend`, not
+> `docker compose restart backend`. A restart reuses the container's existing environment, so
+> the new values are silently ignored and the login page keeps insisting OAuth is unconfigured.
+> `up -d` recreates the container with the current `.env`.
+
 **Without GitHub credentials** the app still runs, the catalogue and session pages work anonymously, and the login page tells you exactly which variables are missing instead of bouncing you to a broken GitHub page. Booking needs a signed-in account.
 
 ---

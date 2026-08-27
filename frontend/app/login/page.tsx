@@ -88,8 +88,9 @@ function LoginContent() {
             <span>
               GitHub OAuth isn&apos;t configured on the server. Add{" "}
               <code className="font-mono">GITHUB_CLIENT_ID</code> and{" "}
-              <code className="font-mono">GITHUB_CLIENT_SECRET</code> to <code className="font-mono">.env</code>,
-              then restart the backend. See the README.
+              <code className="font-mono">GITHUB_CLIENT_SECRET</code> to{" "}
+              <code className="font-mono">.env</code>, then run{" "}
+              <code className="font-mono">docker compose up -d backend</code>. See the README.
             </span>
           </div>
         ) : null}
