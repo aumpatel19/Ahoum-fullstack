@@ -1,6 +1,6 @@
 # Debugging Log
 
-Three issues hit while building this. Nothing here is invented — each one has a commit or a command you can re-run. Format: **symptom → diagnosis → root cause → fix → verification**.
+Four issues hit while building this (the last one reported from use, not found by me). Nothing here is invented — each one has a commit or a command you can re-run. Format: **symptom → diagnosis → root cause → fix → verification**.
 
 ---
 
@@ -89,3 +89,50 @@ queryset = Session.objects.select_related("creator").all()
 The risk in this fix is obvious and worth naming: if `get_queryset()` were ever removed, the class attribute would silently expose every creator's sessions to every creator.
 
 **Verification.** `manage.py spectacular` now reports zero warnings, and the authorization tests still pass unchanged — in particular `test_creator_cannot_edit_another_creators_session` and `test_creator_cannot_delete_another_creators_session`, which both assert 404. Those tests are what makes the class attribute safe to keep: if the scoping ever regresses to the unfiltered queryset, they fail immediately with a 200 instead of a 404.
+
+---
+
+## 4. On a narrow window the navbar had no links at all, and the login page was a dead end
+
+**Symptom.** Reported from actual use: "browse is not working, and when I try to sign in there's no back option."
+
+**Diagnosis.** Browse worked fine for me at desktop width, so the first job was to reproduce rather than to start editing. I drove the app at three viewport widths and listed what was actually visible in the header:
+
+```
+=== viewport 1280px ===  navbar items: ["Ahoum","Browse","Sign in"]   Browse visible: true
+=== viewport 700px  ===  navbar items: ["Ahoum","Browse","Sign in"]   Browse visible: true
+=== viewport 390px  ===  navbar items: ["Ahoum","Browse","Sign in"]   Browse visible: FALSE
+                          -> NO WAY BACK from /login at this width
+```
+
+The links were in the DOM at every width but not *visible* below 640px. Widening the sweep to a signed-in creator on a phone made it worse: the only visible controls were the logo and an unlabelled avatar button, and the avatar dropdown held just Profile / My bookings / Sign out — so **a creator on a phone could not reach `/creator` at all.**
+
+**Root cause.** Two separate mistakes that happened to combine.
+
+1. Every nav link carried `hidden … sm:inline-flex`. That is the standard "hide these on mobile" pattern, and it is only correct when something *replaces* them — a hamburger, a bottom bar, anything. Nothing did. I had written the responsive half of the pattern and skipped the half that makes it work.
+2. `/login` had no navigation of its own; it borrowed the navbar's Browse link as its back button. When that link disappeared, the page became a trap — and it is a page a signed-out visitor lands on by clicking Book, which makes it exactly the wrong place to strand someone.
+
+There was also a third, subtler contributor to "browse is not working": on the catalogue itself, the active link differed from the others only by text colour. Clicking it does nothing, because you are already there — but nothing on screen says so, which reads as a broken link.
+
+**Fix.**
+- Signed-out visitors get a labelled menu button below `sm` containing every link plus Sign in; signed-in visitors get the same links folded into the account dropdown (`sm:hidden`, so they are not duplicated on wide screens).
+- `/login` got its own "Back to sessions" link and a "you don't need an account to browse" footer, so it never depends on the navbar again.
+- `/onboarding/role` — the other route that can hold you in place — got a "sign out and keep browsing" escape.
+- The header no longer offers "Sign in" while you are on the sign-in page.
+- Active links now get a filled background and the menu marks the current page "HERE", so a link that cannot go anywhere explains itself.
+- Both menus close on Escape, on outside click, and on navigation; the avatar button got an `aria-label` (it was an unlabelled button before).
+
+**Verification.** The same probe, re-run, now enumerating what is reachable including through menus:
+
+```
+@1280 anonymous  reachable: ["Ahoum","Browse"]                                        (+ "Sign in" button)
+@1280 creator    reachable: ["Ahoum","Browse","My bookings","Creator","Profile","Sign out"]   missing: nothing
+@390  anonymous  reachable: ["Ahoum","Browse HERE","Sign in"]                          missing: nothing
+@390  creator    reachable: ["Ahoum","Browse HERE","My bookings","Creator","Profile","Sign out"]  missing: nothing
+/login in-page back links: 2, click lands on "/": true
+outside click closes menu: opened=1 afterOutsideClick=0
+```
+
+Plus: a signed-in visitor to `/login` is redirected to `/` (so it has no back link because it never renders), and there is no horizontal overflow at 390px.
+
+**What I took from it.** The bug was not in logic I could have reasoned about from the diff — it was in what a viewport 890px narrower than mine actually renders. I had screenshotted every page during the build, but only at 1280px, so the automated check that was supposed to catch UI problems was blind to the entire class of problem the user hit. Viewport width is now part of the sweep.
