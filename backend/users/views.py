@@ -1,5 +1,6 @@
 import secrets
 
+from django.contrib.auth.models import update_last_login
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -21,6 +22,10 @@ from .serializers import (
 def issue_tokens(user: User) -> dict:
     """Mint our own access/refresh pair. GitHub authenticates; this API authorises."""
     refresh = RefreshToken.for_user(user)
+    # SIMPLE_JWT's UPDATE_LAST_LOGIN only fires in SimpleJWT's own login view,
+    # which we never use - tokens are minted here after the OAuth exchange. Without
+    # this call last_login stays null forever and the admin column is useless.
+    update_last_login(None, user)
     return {"access": str(refresh.access_token), "refresh": str(refresh)}
 
 

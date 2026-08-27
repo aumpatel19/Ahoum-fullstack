@@ -66,6 +66,17 @@ class GitHubOAuthTests(TestCase):
 
     @patch("users.auth_github.requests.get")
     @patch("users.auth_github.requests.post")
+    def test_login_records_last_login(self, post, get):
+        post.return_value = FakeResponse({"access_token": "gh-token"})
+        get.return_value = FakeResponse(PROFILE)
+
+        self.exchange()
+
+        user = User.objects.get(github_id="4242")
+        self.assertIsNotNone(user.last_login, "signing in must stamp last_login")
+
+    @patch("users.auth_github.requests.get")
+    @patch("users.auth_github.requests.post")
     def test_second_login_reuses_the_account(self, post, get):
         post.return_value = FakeResponse({"access_token": "gh-token"})
         get.return_value = FakeResponse(PROFILE)

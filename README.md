@@ -233,7 +233,7 @@ The entrypoint seeds with `--only-if-empty`, so a restart never overwrites real 
 ## Testing
 
 ```bash
-docker compose exec backend pytest          # 51 tests
+docker compose exec backend pytest          # 52 tests
 docker compose exec backend pytest -v       # per-test names
 docker compose exec backend python scripts/race_demo.py
 ```

@@ -57,7 +57,7 @@ status 400
 
 **Fix.** No production change was needed — the code was correct and the harness was wrong. Real assertions moved into pytest, where `pytest-django` performs that setup for me. I kept the JSON-only renderer change on its own merits: this API is consumed by a Next.js client and by scripts, `/api/docs/` already provides a human-browsable surface, and one renderer means every response, including errors, is uniformly JSON.
 
-**Verification.** `pytest` passes 51 tests, including `test_healthz_is_public`, and `curl http://localhost:8080/api/healthz/` through nginx returns `{"ok":true,"db":"up"}`.
+**Verification.** `pytest` passes 52 tests, including `test_healthz_is_public`, and `curl http://localhost:8080/api/healthz/` through nginx returns `{"ok":true,"db":"up"}`.
 
 **What I took from it.** The error message named a symptom (`Content-Type`) that pointed at the wrong layer entirely. Printing the raw status and body — the two things I had assumed rather than checked — found it in one step.
 
