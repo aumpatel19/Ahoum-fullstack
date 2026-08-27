@@ -33,3 +33,6 @@ Thumbs.db
 
 # misc
 *.log
+
+# next/typescript build info
+*.tsbuildinfo

@@ -24,6 +24,10 @@ class SessionViewSet(viewsets.ModelViewSet):
 
     WRITE_ACTIONS = {"create", "update", "partial_update", "destroy"}
 
+    # Declared so the router and the schema generator can infer the pk type;
+    # get_queryset() below is what actually scopes every request.
+    queryset = Session.objects.select_related("creator").all()
+
     def get_permissions(self):
         if self.action in self.WRITE_ACTIONS:
             return [IsAuthenticated(), IsCreator()]
