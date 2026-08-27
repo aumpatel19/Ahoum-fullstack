@@ -233,7 +233,7 @@ The entrypoint seeds with `--only-if-empty`, so a restart never overwrites real 
 ## Testing
 
 ```bash
-docker compose exec backend pytest          # 44 tests
+docker compose exec backend pytest          # 51 tests
 docker compose exec backend pytest -v       # per-test names
 docker compose exec backend python scripts/race_demo.py
 ```
@@ -242,6 +242,7 @@ docker compose exec backend python scripts/race_demo.py
 |---|---|
 | `bookings/tests/test_booking_race.py` | 4 concurrency tests (above) |
 | `bookings/tests/test_booking_rules.py` | Started / soft-deleted / sold-out / duplicate bookings, cancel-and-rebook, plus both database constraints exercised directly |
+| `bookings/tests/test_listing.py` | Active vs past booking scopes, cancelled bookings leaving the active list, creator counts excluding cancellations |
 | `bookings/tests/test_authz.py` | Missing, garbage and **expired** tokens; role gating; cross-creator edit and delete (404); cross-user cancel; capacity below seats booked; soft delete leaving the catalogue |
 | `users/tests/test_oauth.py` | The OAuth exchange with GitHub mocked: new vs returning user, hidden email fallback, username collisions, reused code → 400 not 500, unconfigured server |
 
