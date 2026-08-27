@@ -9,7 +9,10 @@ type Variant = "primary" | "secondary" | "ghost" | "destructive";
 type Size = "sm" | "md";
 
 const VARIANTS: Record<Variant, string> = {
-  primary: "bg-accent text-white hover:bg-accent-hover disabled:hover:bg-accent",
+  primary:
+    "bg-accent text-white hover:bg-accent-hover " +
+    // A disabled primary should read as inert, not as a dimmed call to action.
+    "disabled:bg-elevated disabled:text-muted disabled:hover:bg-elevated",
   secondary: "bg-elevated text-content border border-border hover:border-accent/60",
   ghost: "text-muted hover:text-content hover:bg-elevated",
   destructive: "bg-danger/10 text-danger border border-danger/30 hover:bg-danger/20",
