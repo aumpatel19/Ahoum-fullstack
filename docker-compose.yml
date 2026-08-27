@@ -16,5 +16,48 @@ services:
       timeout: 5s
       retries: 10
 
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    env_file: .env
+    # Wait for a database that actually answers, not just a container that started.
+    depends_on:
+      db:
+        condition: service_healthy
+    expose:
+      - "8000"
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - python -c "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/api/healthz/', timeout=3).status == 200 else 1)"
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 30s
+
+  frontend:
+    build: ./frontend
+    restart: unless-stopped
+    environment:
+      # Relative base URL: the browser talks to nginx on the same origin, so no
+      # hostname is baked into the bundle at build time.
+      NEXT_PUBLIC_API_BASE: /api
+    depends_on:
+      - backend
+    expose:
+      - "3000"
+
+  nginx:
+    image: nginx:alpine
+    restart: unless-stopped
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    # The only published port in the whole stack.
+    ports:
+      - "8080:80"
+    depends_on:
+      - backend
+      - frontend
+
 volumes:
   pgdata:
