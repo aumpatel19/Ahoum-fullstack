@@ -51,7 +51,9 @@ def book_session(*, user, session_id: int) -> Booking:
             user=user, session=session, status=Booking.Status.CONFIRMED
         ).exists()
         if already_booked:
-            raise BookingError("duplicate", "You already have an active booking for this session.", 409)
+            raise BookingError(
+                "duplicate", "You already have an active booking for this session.", 409
+            )
 
         if session.seats_taken >= session.capacity:
             raise BookingError("sold_out", "No seats remaining for this session.", 409)

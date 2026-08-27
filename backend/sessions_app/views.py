@@ -49,7 +49,9 @@ class SessionViewSet(viewsets.ModelViewSet):
         params = self.request.query_params
         search = params.get("search", "").strip()
         if search:
-            queryset = queryset.filter(Q(title__icontains=search) | Q(description__icontains=search))
+            queryset = queryset.filter(
+                Q(title__icontains=search) | Q(description__icontains=search)
+            )
         # Upcoming-only by default; ?upcoming=false shows the full archive.
         if params.get("upcoming", "true").lower() not in ("false", "0", "no"):
             queryset = queryset.filter(starts_at__gt=timezone.now())
@@ -57,8 +59,12 @@ class SessionViewSet(viewsets.ModelViewSet):
 
     @extend_schema(
         parameters=[
-            OpenApiParameter("search", str, description="Case-insensitive match on title or description."),
-            OpenApiParameter("upcoming", bool, description="Default true; false includes past sessions."),
+            OpenApiParameter(
+                "search", str, description="Case-insensitive match on title or description."
+            ),
+            OpenApiParameter(
+                "upcoming", bool, description="Default true; false includes past sessions."
+            ),
         ],
         responses={200: SessionSerializer(many=True)},
     )
@@ -72,7 +78,9 @@ class SessionViewSet(viewsets.ModelViewSet):
         write_serializer = self.get_serializer(data=request.data)
         write_serializer.is_valid(raise_exception=True)
         self.perform_create(write_serializer)
-        return Response(SessionSerializer(write_serializer.instance).data, status=status.HTTP_201_CREATED)
+        return Response(
+            SessionSerializer(write_serializer.instance).data, status=status.HTTP_201_CREATED
+        )
 
     def update(self, request, *args, **kwargs):
         partial = kwargs.pop("partial", False)

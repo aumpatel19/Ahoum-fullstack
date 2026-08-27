@@ -69,7 +69,10 @@ class MyBookingsView(ListAPIView):
             OpenApiParameter(
                 "scope",
                 str,
-                description="active = confirmed and not yet started (default all); past = cancelled or finished.",
+                description=(
+                    "active = confirmed and not yet started (default all); "
+                    "past = cancelled or finished."
+                ),
             )
         ],
         responses={200: BookingSerializer(many=True)},

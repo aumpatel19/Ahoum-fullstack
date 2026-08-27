@@ -36,7 +36,9 @@ PROFILE = {
 @override_settings(GITHUB_CLIENT_ID="test-client", GITHUB_CLIENT_SECRET="test-secret")
 class GitHubOAuthTests(TestCase):
     def exchange(self, code="valid-code"):
-        return self.client.post("/api/auth/oauth/github/", {"code": code}, content_type="application/json")
+        return self.client.post(
+            "/api/auth/oauth/github/", {"code": code}, content_type="application/json"
+        )
 
     @patch("users.auth_github.requests.get")
     @patch("users.auth_github.requests.post")

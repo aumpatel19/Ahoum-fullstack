@@ -81,9 +81,7 @@ class BookingRaceTests(TransactionTestCase):
 
     def _assert_consistent(self, session: Session, expected_confirmed: int) -> None:
         session.refresh_from_db()
-        confirmed = Booking.objects.filter(
-            session=session, status=Booking.Status.CONFIRMED
-        ).count()
+        confirmed = Booking.objects.filter(session=session, status=Booking.Status.CONFIRMED).count()
         self.assertEqual(confirmed, expected_confirmed, "wrong number of confirmed bookings")
         self.assertEqual(session.seats_taken, expected_confirmed, "counter drifted from reality")
         self.assertLessEqual(session.seats_taken, session.capacity, "session was oversold")
@@ -93,7 +91,9 @@ class BookingRaceTests(TransactionTestCase):
         session = self._session(capacity=1)
         results = self._run_concurrently(session, self._users(2))
 
-        self.assertEqual(results.count("confirmed"), 1, f"expected exactly one winner, got {results}")
+        self.assertEqual(
+            results.count("confirmed"), 1, f"expected exactly one winner, got {results}"
+        )
         self.assertEqual(results.count("sold_out"), 1, f"loser should see sold_out, got {results}")
         self._assert_consistent(session, expected_confirmed=1)
 
@@ -102,7 +102,9 @@ class BookingRaceTests(TransactionTestCase):
         session = self._session(capacity=5)
         results = self._run_concurrently(session, self._users(20))
 
-        self.assertEqual(results.count("confirmed"), 5, f"expected exactly 5 winners, got {results}")
+        self.assertEqual(
+            results.count("confirmed"), 5, f"expected exactly 5 winners, got {results}"
+        )
         self.assertEqual(results.count("sold_out"), 15)
         self._assert_consistent(session, expected_confirmed=5)
 
@@ -163,9 +165,7 @@ class BookingRaceTests(TransactionTestCase):
         # hold in every ordering is that the counter equals reality and capacity
         # is never exceeded.
         self.assertEqual(results.count("cancelled"), 3)
-        confirmed = Booking.objects.filter(
-            session=session, status=Booking.Status.CONFIRMED
-        ).count()
+        confirmed = Booking.objects.filter(session=session, status=Booking.Status.CONFIRMED).count()
         session.refresh_from_db()
         self.assertEqual(session.seats_taken, confirmed)
         self.assertLessEqual(session.seats_taken, session.capacity)

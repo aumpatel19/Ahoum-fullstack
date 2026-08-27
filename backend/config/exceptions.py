@@ -28,7 +28,10 @@ def api_exception_handler(exc, context):
         return response
 
     if isinstance(data, dict) and "detail" in data:
-        response.data = {"detail": str(data["detail"]), "code": getattr(exc, "default_code", "error")}
+        response.data = {
+            "detail": str(data["detail"]),
+            "code": getattr(exc, "default_code", "error"),
+        }
         return response
 
     # Field-level validation errors (dict of lists) or a bare list of errors.

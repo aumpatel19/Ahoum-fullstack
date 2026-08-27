@@ -134,11 +134,15 @@ class BookingRulesTests(TestCase):
     def test_cancelled_rows_do_not_block_a_new_booking_row(self):
         session = self._session(capacity=5)
         Booking.objects.create(
-            user=self.alice, session=session, status=Booking.Status.CANCELLED,
+            user=self.alice,
+            session=session,
+            status=Booking.Status.CANCELLED,
             cancelled_at=timezone.now(),
         )
         Booking.objects.create(
-            user=self.alice, session=session, status=Booking.Status.CANCELLED,
+            user=self.alice,
+            session=session,
+            status=Booking.Status.CANCELLED,
             cancelled_at=timezone.now(),
         )
         # Two cancelled rows coexist happily; only CONFIRMED is constrained.

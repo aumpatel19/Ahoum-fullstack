@@ -9,7 +9,9 @@ from rest_framework.response import Response
 
 
 @extend_schema(
-    responses={200: {"type": "object", "properties": {"ok": {"type": "boolean"}, "db": {"type": "string"}}}},
+    responses={
+        200: {"type": "object", "properties": {"ok": {"type": "boolean"}, "db": {"type": "string"}}}
+    },
     examples=[OpenApiExample("healthy", value={"ok": True, "db": "up"})],
     description="Liveness and database readiness probe used by the compose healthcheck.",
 )

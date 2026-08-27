@@ -73,7 +73,9 @@ def exchange_code_for_token(code: str) -> str:
     # GitHub answers 200 with an error body for a bad/expired/reused code.
     payload = response.json() if response.content else {}
     if response.status_code != 200 or "error" in payload:
-        logger.warning("GitHub token exchange failed: %s", payload.get("error", response.status_code))
+        logger.warning(
+            "GitHub token exchange failed: %s", payload.get("error", response.status_code)
+        )
         raise GitHubOAuthError(
             "oauth_exchange_failed",
             payload.get("error_description") or "GitHub rejected the authorization code.",
@@ -82,7 +84,9 @@ def exchange_code_for_token(code: str) -> str:
 
     token = payload.get("access_token")
     if not token:
-        raise GitHubOAuthError("oauth_exchange_failed", "GitHub returned no access token.", http=400)
+        raise GitHubOAuthError(
+            "oauth_exchange_failed", "GitHub returned no access token.", http=400
+        )
     return token
 
 
@@ -97,14 +101,18 @@ def fetch_profile(access_token: str) -> dict:
         raise GitHubOAuthError("github_unreachable", "Could not reach GitHub.", http=502) from exc
 
     if user_response.status_code != 200:
-        raise GitHubOAuthError("github_profile_failed", "Could not read the GitHub profile.", http=502)
+        raise GitHubOAuthError(
+            "github_profile_failed", "Could not read the GitHub profile.", http=502
+        )
 
     profile = user_response.json()
     email = profile.get("email")
     if not email:
         # The user hides their email on their public profile; ask for the verified primary.
         try:
-            emails_response = requests.get(settings.GITHUB_EMAILS_URL, headers=headers, timeout=TIMEOUT)
+            emails_response = requests.get(
+                settings.GITHUB_EMAILS_URL, headers=headers, timeout=TIMEOUT
+            )
             if emails_response.status_code == 200:
                 emails = emails_response.json()
                 primary = next(

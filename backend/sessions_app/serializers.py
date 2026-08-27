@@ -68,7 +68,8 @@ class SessionWriteSerializer(serializers.ModelSerializer):
             # Otherwise the DB CheckConstraint would reject the write with a 500;
             # this turns it into a readable 400 while the constraint stays as backstop.
             raise serializers.ValidationError(
-                f"Capacity cannot be lower than the {self.instance.seats_taken} seat(s) already booked."
+                f"Capacity cannot be lower than the {self.instance.seats_taken} "
+                "seat(s) already booked."
             )
         return value
 

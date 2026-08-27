@@ -19,7 +19,11 @@ from sessions_app.models import Session
 from users.models import User
 
 CREATORS = [
-    ("maya-lightwell", "Maya Lightwell", "Breathwork facilitator. Twelve years of ruining people's excuses."),
+    (
+        "maya-lightwell",
+        "Maya Lightwell",
+        "Breathwork facilitator. Twelve years of ruining people's excuses.",
+    ),
     ("arun-bodhi", "Arun Bodhi", "Sound healer and former sound engineer. Yes, both."),
 ]
 

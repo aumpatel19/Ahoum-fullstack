@@ -62,7 +62,9 @@ class AuthorizationTests(APITestCase):
     def test_protected_route_with_an_expired_token_is_401(self):
         token = AccessToken.for_user(self.plain_user)
         # Backdate the token: issued and expired five minutes ago.
-        token.set_exp(from_time=timezone.now() - timedelta(minutes=10), lifetime=timedelta(minutes=5))
+        token.set_exp(
+            from_time=timezone.now() - timedelta(minutes=10), lifetime=timedelta(minutes=5)
+        )
         self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {token}")
 
         response = self.client.get("/api/me/")
