@@ -59,7 +59,18 @@ and added `test_cancelled_rows_do_not_block_a_new_booking_row` to hold the line.
 **Asked.** Axios instance with a JWT interceptor and refresh-on-401, react-query hooks, Tailwind theme tokens per PRD §10.
 **Kept.** The token store and the interceptor pair.
 **Changed.** The generated interceptor fired one refresh request per 401. A page that starts four queries on mount would send four refreshes and race them. I added a single shared in-flight promise. I also added an `isAuthCall` guard so a failing refresh cannot recurse into itself.
-**Verified.** Loaded an authenticated page with an expired access token in `localStorage` and watched a single `POST /api/auth/refresh/` in the network panel, followed by the retried requests.
+**Verified.** Minted a deliberately expired access token alongside a valid refresh token, put both in `localStorage`, loaded `/bookings` in a real browser and recorded every `/api/` response:
+
+```
+GET  /api/me/            -> 401
+POST /api/auth/refresh/  -> 200
+GET  /api/me/            -> 200
+GET  /api/bookings/      -> 200
+refresh requests : 1
+redirected to login: false
+```
+
+One refresh, the original requests retried, no bounce to the login page.
 
 ### #9 · Frontend pages
 **Asked.** Catalogue, detail with all booking states, bookings, profile, creator dashboard and form — with loading, empty and error states everywhere (PRD §9.3).
