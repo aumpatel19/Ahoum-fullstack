@@ -240,6 +240,16 @@ docker compose exec backend python scripts/race_demo.py
 | `bookings/tests/test_authz.py` | Missing, garbage and **expired** tokens; role gating; cross-creator edit and delete (404); cross-user cancel; capacity below seats booked; soft delete leaving the catalogue |
 | `users/tests/test_oauth.py` | The OAuth exchange with GitHub mocked: new vs returning user, hidden email fallback, username collisions, reused code → 400 not 500, unconfigured server |
 
+**The OAuth unhappy paths** are covered by driving the callback route with exactly the query strings GitHub sends. Verified in a browser against the running stack:
+
+| What GitHub sends back | Where you end up | What you're told |
+|---|---|---|
+| `?error=access_denied` (you pressed Cancel) | `/login` | "GitHub sign-in was cancelled." |
+| `?code=…&state=<wrong>` | `/login` | "The sign-in request didn't match. Please start again." |
+| no `code` at all | `/login` | "GitHub couldn't complete the sign-in. Please try again." |
+
+No blank screens and no unhandled errors in any of the three. The happy path needs real GitHub credentials in `.env`; the server side of it is covered by `users/tests/test_oauth.py` with GitHub mocked.
+
 Running them locally instead of in Docker needs a Postgres to point at:
 
 ```bash
