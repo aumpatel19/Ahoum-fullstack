@@ -246,6 +246,16 @@ docker compose exec backend python scripts/race_demo.py
 | `bookings/tests/test_authz.py` | Missing, garbage and **expired** tokens; role gating; cross-creator edit and delete (404); cross-user cancel; capacity below seats booked; soft delete leaving the catalogue |
 | `users/tests/test_oauth.py` | The OAuth exchange with GitHub mocked: new vs returning user, hidden email fallback, username collisions, reused code → 400 not 500, unconfigured server |
 
+> **Signing out and back in feels instant — that is GitHub, not a bug.** Once you have
+> authorised the OAuth app, GitHub's `/authorize` endpoint stops showing the consent screen
+> and redirects straight back with a fresh code, so long as you are still signed in to GitHub.
+> Signing out here really does end the session (tokens are cleared and guarded routes bounce
+> to `/login`); GitHub simply re-grants consent without asking.
+>
+> To get the consent screen back — which you need in order to test the **Cancel** path by hand —
+> revoke the app at <https://github.com/settings/applications> (Authorized OAuth Apps → the app →
+> Revoke access), then sign in again.
+
 **The OAuth unhappy paths** are covered by driving the callback route with exactly the query strings GitHub sends. Verified in a browser against the running stack:
 
 | What GitHub sends back | Where you end up | What you're told |
