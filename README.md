@@ -321,5 +321,5 @@ Deliberate omissions, not oversights:
 |---|---|
 | [DECISIONS.md](DECISIONS.md) | Seven decisions the brief left open — invariant ownership, token storage, soft delete, the denormalised counter, hand-rolled OAuth, 404-vs-403, runtime OAuth config |
 | [DEBUGGING.md](DEBUGGING.md) | Four real issues, including one where my first diagnosis was wrong and one reported from use |
-| [PROMPT_LOG.md](PROMPT_LOG.md) | How the AI tooling was used, and five things it got wrong that I caught |
+| [PROMPT_LOG.md](PROMPT_LOG.md) | How the AI tooling was actually used, what it got wrong, and which of those I missed |
 | [PRD.md](PRD.md) | The spec I wrote before starting, and worked from |

@@ -1,65 +1,103 @@
 # AI Prompt Log
 
-**Tool:** Claude Code (Claude Opus), driven from a written PRD ([PRD.md](PRD.md)) that I wrote first and referenced by section in each prompt.
+**Tool used:** Claude Code, running Claude Opus. That was the only AI tool I used.
 
-**How I worked.** One phase per prompt, never "build me the app". After every generation I read the diff, ran the thing, and only then moved on. The PRD's section numbers did the heavy lifting: pointing at "§5" is shorter and less ambiguous than re-describing the booking rules each time, and it keeps the model from redesigning something I had already decided.
+## How I actually worked
 
-Times are approximate. Each entry: **what I asked → what I kept → what I changed or rejected → how I verified**.
+I want to be straight about this, because it changes how you should read the rest of the file.
+
+I did not type most of this code. I wrote the spec first — [PRD.md](PRD.md) — and that is where my real work went: the stack choices, the data model, the booking design (row lock plus database constraints), which invariant lives where, and the commit plan. Then I handed that spec to Claude Code a section at a time and let it write the code.
+
+So my job on this project was closer to spec, review and test than to typing. I checked the output by running it — tests, the compose stack, the app in a browser — rather than by reading every line as it appeared. Some things I caught that way. Some things I missed, and one of them I only found by using the app myself. Both kinds are below.
+
+The spec mattered more than any individual prompt. Pointing at "§5" was shorter than re-explaining the booking rules every time, and it stopped the model redesigning things I had already decided. Several of the traps I was worried about never happened, because the spec had already ruled them out.
+
+Each entry: **what I asked for → what came back → what changed → how I checked it.**
 
 ---
 
-### #1 · Scaffold and infrastructure skeleton
-**Asked.** Set up the monorepo per PRD §2 and §8: `backend/`, `frontend/`, `nginx/`, doc stubs, `.gitignore`, `.env.example`, and a compose file with just Postgres plus a healthcheck and a named volume.
-**Kept.** Nearly all of it. The compose healthcheck (`pg_isready` on an interval) and the named `pgdata` volume were right first time.
-**Changed.** Added `.gitattributes` with `*.sh text eol=lf` before writing any shell script. Git on Windows would otherwise commit `entrypoint.sh` with CRLF, and the container would fail with an unhelpful `exec format`-flavoured error. This was pre-emptive, not a fix — I have lost an hour to it before.
-**Verified.** `docker compose up db` reaches `healthy`; `git check-attr text eol -- backend/entrypoint.sh` reports `eol: lf`.
+### 1. Scaffold, Docker and the Django project
+*Claude Code / Opus*
 
-### #2 · Django project, settings from the environment, `/api/healthz/`
-**Asked.** Django 5 + DRF project with `django-environ`, a custom user model from day one, and a health endpoint that reports database state for the compose healthcheck.
-**Kept.** The settings layout and the healthz view.
-**Changed.** The generated `REST_FRAMEWORK` block used `AllowAny` as the default permission. I inverted it to `IsAuthenticated` and made every public endpoint opt in explicitly. Deny-by-default means a new endpoint that forgets its permission class fails closed rather than open.
-**Verified.** `manage.py check`; `/api/healthz/` returns `{"ok": true, "db": "up"}`.
+**Asked for.** The repo layout from PRD §2 and §8: `backend/`, `frontend/`, `nginx/`, doc stubs, `.env.example`, and a compose file with Postgres, a healthcheck and a named volume. Then the Django project with settings read from the environment and a `/api/healthz/` endpoint.
 
-### #3 · GitHub OAuth exchange and JWT issuance (PRD §6.1)
-**Asked.** A hand-rolled code exchange: swap the code for a GitHub token, read the profile, fall back to `/user/emails` when the email is hidden, get-or-create by `github_id`, return our own SimpleJWT pair.
-**Kept.** The overall shape, including the email fallback.
-**Changed.** Three things. (a) The draft looked users up by email; I changed the key to `github_id`, because emails change and are not guaranteed to be present. (b) It let the frontend send a `role` on login, which would have been a privilege-escalation hole — replaced with the one-time, server-enforced `choose-role` endpoint. (c) I moved the authorize-URL construction into the backend (`/api/auth/github/authorize-url/`) rather than a `NEXT_PUBLIC_` variable, so OAuth config is not baked into the frontend image at build time (DECISIONS D7).
-**Verified.** Nine tests in `users/tests/test_oauth.py` with `requests` mocked, including "a reused code returns 400, not 500" and "role survives a later login".
+**Came back.** Close to what I wanted.
 
-### #4 · Session and booking models (PRD §3)
-**Asked.** The two models with the constraints from the spec.
-**Kept.** Field layout, the soft-delete flag, both check constraints.
-**Changed.** The first draft used `unique_together = ("user", "session")` for the no-duplicate-booking rule. That is wrong for this domain: it makes a cancelled booking block the same user from ever rebooking. Replaced with a partial `UniqueConstraint(condition=Q(status="CONFIRMED"))`.
-**Verified.** Read the generated migration, then inspected the live database:
+**Changed.** Two things. A `.gitattributes` with `*.sh text eol=lf` went in before any shell script existed — I am on Windows, and a CRLF `entrypoint.sh` fails inside a Linux container with a message that tells you nothing useful. And the DRF defaults came back with `AllowAny`; I switched the default to `IsAuthenticated` so public endpoints have to opt in. A forgotten permission class should fail closed, not open.
+
+**Checked.** `docker compose up db` went healthy, `/api/healthz/` returned `{"ok": true, "db": "up"}`.
+
+---
+
+### 2. GitHub OAuth and JWTs
+*Claude Code / Opus*
+
+**Asked for.** The hand-rolled exchange from PRD §6.1: swap the code for a GitHub token, read the profile, fall back to `/user/emails` when the email is private, find-or-create the user by GitHub id, return our own JWT pair.
+
+**Came back.** Working, including the email fallback.
+
+**Changed.** One thing I added on top of the spec: the authorize URL is built by the backend and served from `/api/auth/github/authorize-url/`, instead of putting the client id in a `NEXT_PUBLIC_` variable. Next.js bakes those in at build time, so the reviewer would have had to rebuild the frontend image after editing `.env`. This way the OAuth config lives in one place and a backend restart is enough. That became DECISIONS D7.
+
+**Checked.** Nine tests with `requests` mocked, including a reused code returning 400 instead of 500. Later, with my own OAuth app configured, GitHub's page came up saying "Sign in to GitHub to continue to Ahoum", which confirmed the client id and redirect URI were right.
+
+---
+
+### 3. Models and the booking service
+*Claude Code / Opus*
+
+**Asked for.** The models and constraints from PRD §3, then `book_session` exactly as written in §5.
+
+**Came back.** Very close to the spec. This was the smoothest part of the build, and I think that is the point: I had already made the hard decisions, so there was little room to get it wrong.
+
+**Changed.** One real fix, in `cancel_booking`. The draft read the booking, then locked the session, then flipped the status using the row it had already loaded. Two people cancelling the same booking at once could both pass the status check and both give back a seat. It now re-reads the booking *after* taking the lock, so the second one sees `CANCELLED` and gets a 409.
+
+**Checked.** `test_cancellations_and_bookings_interleaved` runs three cancels against three bookings and asserts `seats_taken` still equals the number of confirmed bookings.
+
+---
+
+### 4. The race tests
+*Claude Code / Opus*
+
+**Asked for.** The four concurrency tests from PRD §5.1, on `TransactionTestCase`.
+
+**Note on that.** My spec called for `TransactionTestCase` and said why: a normal `TestCase` wraps the test in one transaction that gets rolled back, so worker threads on their own connections see nothing, and the test passes while proving nothing. I flagged it up front because it is the obvious default and it is wrong here. It never came up as a mistake, because the spec had already closed it off.
+
+**Changed.** I found a bug in the generated test before running it. The interleaved test called a helper that creates users named `racer-0`, `racer-1`, `racer-2` — and called it twice in the same test. The second call would have blown up on the unique username. Small, but it would have looked like a real failure and cost time to chase.
+
+**Checked.** This is the check I care most about. I deleted `select_for_update()` from the service and ran the file again:
+
 ```
-"uniq_active_booking_per_user_session" UNIQUE, btree (user_id, session_id) WHERE status = 'CONFIRMED'
-"seats_within_capacity" CHECK (seats_taken <= capacity)
+FAILED test_two_bookers_one_seat
+FAILED test_twenty_bookers_five_seats
+FAILED test_cancellations_and_bookings_interleaved
+E   django.db.utils.IntegrityError: new row for relation "sessions_app_session"
+    violates check constraint "seats_within_capacity"
+3 failed, 1 passed
 ```
-and added `test_cancelled_rows_do_not_block_a_new_booking_row` to hold the line.
 
-### #5 · The booking service (PRD §5) — the centrepiece
-**Asked.** Implement `book_session` exactly as specified: `select_for_update`, all checks inside the lock, `F()` increment, `IntegrityError` surfaced as a 409.
-**Kept.** Almost verbatim; this was the part I had already designed in the PRD, which is exactly why I wrote the PRD.
-**Changed.** In `cancel_booking` the draft read the booking, then locked the session, then flipped the status using the already-loaded row. Two concurrent cancels of the same booking could both pass the status check and both decrement the counter. I made it re-read the booking *after* taking the session lock, so the second one sees `CANCELLED` and returns 409.
-**Verified.** `test_cancellations_and_bookings_interleaved` asserts `seats_taken == COUNT(confirmed)` after three cancels and three bookings race each other.
+Three of four fail without the lock, and they fail because the *database* refuses the oversell. That tells me the tests are real and that both layers do something. Put the lock back: 4 passed. (The fourth test, one user double-clicking, still passes without the lock — that rule is held by the partial unique index on its own.)
 
-### #6 · Race tests (PRD §5.1)
-**Asked.** Concurrency tests proving the invariant holds, on `TransactionTestCase`, with a note about why not `TestCase`.
-**Kept.** The structure — barrier, thread pool, `connections.close_all()` in each thread's `finally`.
-**Changed.** See "what AI got wrong" #2 below.
-**Verified.** The real verification was deleting `select_for_update()` and re-running. Detail below; this is the single most useful thing I did all build.
+---
 
-### #7 · Seed command and the HTTP race demo
-**Asked.** Idempotent demo data, and a script that fires N simultaneous bookings through nginx at gunicorn.
-**Kept.** Both.
-**Changed.** Two corrections, both listed below (the seed's counter drift, and the async/ORM crash).
-**Verified.** `manage.py seed` run twice ("4 new bookings", then "0 new bookings"); `race_demo.py` output pasted into the README.
+### 5. Seed data and the HTTP race demo
+*Claude Code / Opus*
 
-### #8 · Frontend: tokens, API client, design tokens
-**Asked.** Axios instance with a JWT interceptor and refresh-on-401, react-query hooks, Tailwind theme tokens per PRD §10.
-**Kept.** The token store and the interceptor pair.
-**Changed.** The generated interceptor fired one refresh request per 401. A page that starts four queries on mount would send four refreshes and race them. I added a single shared in-flight promise. I also added an `isAuthCall` guard so a failing refresh cannot recurse into itself.
-**Verified.** Minted a deliberately expired access token alongside a valid refresh token, put both in `localStorage`, loaded `/bookings` in a real browser and recorded every `/api/` response:
+**Asked for.** Idempotent demo data, and a script that fires ten bookings at once through nginx so the race runs across gunicorn worker processes, not just threads.
+
+**Changed.** The seed had a real bug. It needs one booking on a session that already started, which `book_session` correctly refuses, so it wrote the `Booking` row directly — and did not touch `seats_taken`. Every seeded session would have been consistent except that one. On a project whose whole point is "the counter can be trusted", shipping a counterexample in the demo data would have been bad. It now bumps the counter in the same block.
+
+**Checked.** Ran the seed twice: "4 new bookings", then "0 new bookings". The demo script prints one 201 and nine 409s and exits non-zero if the numbers are ever wrong.
+
+---
+
+### 6. Frontend
+*Claude Code / Opus*
+
+**Asked for.** The routes from PRD §9 with the theme tokens from §10, and loading, empty and error states everywhere.
+
+**Changed.** Two things worth mentioning. The refresh interceptor fired one refresh request per 401, so a page starting four queries would send four refreshes and race them; it now shares one in-flight promise. And I had all the error copy rewritten to key off the API's error codes instead of generic "An error occurred" strings, so a sold-out booking says "That was the last seat — this session just sold out."
+
+**Checked.** Put a deliberately expired access token in `localStorage` and loaded `/bookings` in a browser:
 
 ```
 GET  /api/me/            -> 401
@@ -67,62 +105,77 @@ POST /api/auth/refresh/  -> 200
 GET  /api/me/            -> 200
 GET  /api/bookings/      -> 200
 refresh requests : 1
-redirected to login: false
 ```
 
 One refresh, the original requests retried, no bounce to the login page.
 
-### #9 · Frontend pages
-**Asked.** Catalogue, detail with all booking states, bookings, profile, creator dashboard and form — with loading, empty and error states everywhere (PRD §9.3).
-**Kept.** Most of the markup.
-**Changed.** Rewrote the copy. The generated strings were the usual "An error occurred" / "No data found"; I keyed every message off the API's machine `code` instead, so "sold_out" says *"That was the last seat — this session just sold out."* Also added the honest line on the detail page: availability is confirmed at write time, not page load.
-**Verified.** Playwright screenshots of all six pages with tokens injected into `localStorage`, asserting zero console errors on each.
+---
 
-### #10 · Docker, nginx, and the clean-run check
-**Asked.** Four services, one published port, standalone Next build, entrypoint that waits for the database then migrates, collects static and seeds only when empty.
-**Kept.** All of it.
-**Changed.** Added an explicit `wait_for_db.py` even though compose already gates on the healthcheck, so the container also behaves when started on its own instead of crash-looping.
-**Verified.** `docker compose up --build` from scratch; `pytest` inside the container (44 passed); restart test for volume persistence (10 sessions / 7 bookings before and after).
+### 7. Docker, nginx and a clean-clone run
+*Claude Code / Opus*
+
+**Asked for.** Four services, one published port, a standalone Next build, and an entrypoint that waits for the database, migrates, collects static and seeds only if the database is empty.
+
+**Checked.** Cloned the repo into a fresh folder, copied `.env.example` to `.env`, ran `docker compose up --build`, and it came up. Ran the tests inside the container. Ran the race demo. Then checked persistence: 10 sessions and 7 bookings before a restart, the same after.
 
 ---
 
-## What the AI got wrong, and how I caught it
+### 8. Checking the finished thing against the brief
+*Claude Code / Opus*
 
-Five real ones. Each is a thing I would have shipped if I had accepted the generated code as written.
+**Asked for.** A line-by-line audit of the repo against the actual assignment text.
 
-### 1. ORM calls inside an async event loop (runtime crash)
-`race_demo.py` was generated as one large `async def main()` that called `User.objects.get_or_create(...)` and `Booking.objects.filter(...).count()`. It looked fine and passed review. It died on first run with `SynchronousOnlyOperation: You cannot call this from an async context`. The fix was structural — `main()` is synchronous and owns every ORM call, `run_race()` is async and owns only HTTP. Full write-up in [DEBUGGING.md](DEBUGGING.md) #1.
-**How I caught it:** by running the script against the real stack rather than trusting that it looked correct.
-
-### 2. A race test that would have "passed" without any locking
-The first version of the concurrency test extended `django.test.TestCase`. That wraps each test in a transaction which is rolled back at the end, so the worker threads — on their own connections — cannot see the fixture rows, and nothing about `SELECT ... FOR UPDATE` is exercised. It is the worst kind of test: green, and testing nothing. I switched it to `TransactionTestCase`.
-**How I verified the switch mattered** — and this is the check I would want to be asked about in an interview: I deleted `select_for_update()` from `book_session` and re-ran the file.
-
-```
-FAILED bookings/tests/test_booking_race.py::BookingRaceTests::test_two_bookers_one_seat
-FAILED bookings/tests/test_booking_race.py::BookingRaceTests::test_twenty_bookers_five_seats
-FAILED bookings/tests/test_booking_race.py::BookingRaceTests::test_cancellations_and_bookings_interleaved
-E   django.db.utils.IntegrityError: new row for relation "sessions_app_session"
-    violates check constraint "seats_within_capacity"
-3 failed, 1 passed in 2.78s
-```
-
-Two things fall out of that run. The tests do detect a missing lock — and the failure arrives as the *database* refusing the oversell, which is the CHECK constraint from DECISIONS D1 earning its place. (The fourth test, same-user double-click, still passed: that invariant is held by the partial unique index alone and does not need the lock.) Restoring the line: `4 passed`.
-
-### 3. A duplicate-booking rule that would have blocked rebooking forever
-The generated model used `unique_together = ("user", "session")`. Django cannot make `unique_together` conditional, so cancelling a booking would have permanently barred that user from rebooking that session — a rule nobody asked for, invisible until a user complained. Replaced with a partial `UniqueConstraint` on `status = 'CONFIRMED'`, plus a test that creates two cancelled rows and one confirmed row for the same pair.
-**How I caught it:** reading the generated migration and asking "what does this do to the cancel flow?"
-
-### 4. The seed introduced counter drift into the one invariant the project is about
-The seed script needs one booking on a session that has already started, which `book_session` (correctly) refuses. The generated fallback wrote the `Booking` row directly — and did not touch `seats_taken`. Every session in the demo data would have been consistent except that one, where `seats_taken` said 0 and reality said 1. On a project whose entire premise is "the counter is trustworthy", seeding a counterexample would have been quietly embarrassing.
-**How I caught it:** review, before running it. The fix bumps the counter in the same `if created:` block, with a comment saying why the direct write exists at all.
-
-### 5. Login could set your own role
-The first OAuth view accepted a `role` field from the frontend and applied it on every login, so `{"code": "...", "role": "CREATOR"}` would have made anyone a creator — and re-applied it on each sign-in. Replaced with `POST /api/auth/choose-role/`, allowed exactly once and gated on a server-side `role_chosen` flag. The profile endpoint has a hard field whitelist for the same reason.
-**How I caught it:** review, then pinned with two tests — `test_role_cannot_be_escalated_through_the_profile_endpoint` and `test_role_can_only_be_chosen_once`.
+**Found.** Two requirements had no test behind them — "see active/past bookings" and "creator sees booking counts". The features worked, but nothing would have caught a cancelled booking still showing as active, or a count that included cancellations. Added seven tests for exactly those. That took the suite from 44 to 51.
 
 ---
 
-## What I'd tell someone using AI on a task like this
+## What the AI got wrong, and what it cost
 
-The model was fastest at the parts I had already specified precisely (the booking service came out close to the PRD text) and least reliable at the parts where correctness depends on runtime context you cannot see in the diff — transaction boundaries, event loops, and "what happens the *second* time this runs". Every mistake above is in that second category, and every one was caught by running the code or by asking what a rule does to a flow other than the happy path. Reading the diff was necessary; it was not sufficient.
+### 1. Database calls inside an async event loop
+The race demo script was written as one big `async def main()` that also did the ORM work — creating demo users, counting bookings at the end. It looked fine. It died on the first run:
+
+```
+django.core.exceptions.SynchronousOnlyOperation:
+    You cannot call this from an async context - use a thread or sync_to_async.
+```
+
+Reading it would not have caught this. Running it did, immediately. The fix was structural: the synchronous function owns all the database work, and the async part is only the HTTP fan-out. Written up in [DEBUGGING.md](DEBUGGING.md) #1.
+
+### 2. The mobile navigation was broken and I shipped it
+This is the one that actually got past everything. Every nav link was hidden below the 640px breakpoint, with nothing put in its place — the standard "hide on mobile" pattern with the other half missing. On a phone the header had the logo and nothing else. A creator could not reach their own dashboard at all. On top of that, `/login` was using the navbar's Browse link as its back button, so when that link disappeared the page became a dead end.
+
+I found it by opening the app and trying to use it. Not by review, and not by any test.
+
+The reason it got through is worth writing down: screenshots had been taken of every page during the build, but only at 1280px wide. The automated check that was supposed to catch UI problems was blind to the whole category of problem I hit. Full write-up in [DEBUGGING.md](DEBUGGING.md) #4.
+
+### 3. It told me to restart the backend, and that does not work
+When I added my GitHub credentials to `.env`, the instruction — in the README, in the login page's warning, and in the API's own error message — said to restart the backend. I did. Nothing changed; the app still said OAuth was not configured.
+
+`docker compose restart` reuses the container's existing environment. It does not re-read `.env`. You need `docker compose up -d backend` to recreate the container. Wrong instruction in three places, and it would have hit whoever reviews this too. All three are fixed now.
+
+### 4. A first diagnosis that was confidently wrong
+An early smoke test failed with `Content-Type header is "text/html", not "application/json"`. The first explanation offered was DRF's browsable API renderer, and the renderer config was changed to match. Same error. The actual cause was a `DisallowedHost` 400 — Django's test client sends `Host: testserver` and I was calling it outside the test runner, so `ALLOWED_HOSTS` never got patched. The HTML was an error page, and DRF was never involved.
+
+What I take from it: the error message pointed at the wrong layer, and one round of guessing made it worse. Printing the status code and the body found it in one step. [DEBUGGING.md](DEBUGGING.md) #2.
+
+### 5. A test assertion that could not fail
+One of the browser checks tested the Past bookings tab like this:
+
+```js
+bodyText.includes("Full Moon") || bodyText.includes("Nothing in your history")
+```
+
+The second half matches the empty state. So the check passed whether the tab had bookings in it or not. It reported success on a tab that was, in fact, empty. A test that cannot fail is worse than no test, because it buys you false confidence.
+
+### 6. Small sloppiness
+A leftover prop on the booking button — `icon={book.isPending ? undefined : <Loader2 className="hidden" />}` — that did nothing at all and imported an icon just to hide it. Harmless, but it is the kind of thing that ends up in a codebase when nobody reads the output.
+
+---
+
+## What I would tell someone doing this
+
+The spec did more work than the prompts. Everything I had decided in advance came back close to right, and the parts I had thought hardest about — the lock, the constraints, the test class — never went wrong, because there was nothing left to guess.
+
+The failures clustered somewhere specific: things you cannot see in a diff. An event loop. A viewport width. Whether `restart` re-reads a file. Whether a test can actually fail. Reading the code would not have found any of those. Running it found all of them, and the one that got furthest was the one where my automated check was looking in the wrong place.
+
+If I did it again I would spend less time reviewing code as text and more time on the checks themselves — different screen sizes, and making sure each test fails when it should.
