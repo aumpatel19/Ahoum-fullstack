@@ -1,6 +1,7 @@
 "use client";
 
-import { Github, ShieldAlert, Sparkles } from "lucide-react";
+import { ArrowLeft, Github, ShieldAlert, Sparkles } from "lucide-react";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -49,7 +50,18 @@ function LoginContent() {
   const notConfigured = data && !data.configured;
 
   return (
-    <div className="page flex min-h-[calc(100vh-4rem)] items-center justify-center py-16">
+    <div className="page flex min-h-[calc(100vh-4rem)] flex-col items-center justify-center py-16">
+      <div className="w-full max-w-md">
+        {/* An explicit way out. Signing in is optional - browsing is not gated -
+            so this page must never be a dead end, at any screen width. */}
+        <Link
+          href="/"
+          className="mb-4 inline-flex items-center gap-2 text-sm text-muted transition hover:text-content"
+        >
+          <ArrowLeft className="h-4 w-4" /> Back to sessions
+        </Link>
+      </div>
+
       <Card className="aurora w-full max-w-md p-8">
         <span className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-accent/15 text-accent">
           <Sparkles className="h-5 w-5" />
@@ -87,6 +99,14 @@ function LoginContent() {
           uses are issued by its own backend.
         </p>
       </Card>
+
+      <p className="mt-6 text-center text-xs text-muted">
+        You don&apos;t need an account to browse.{" "}
+        <Link href="/" className="text-accent transition hover:text-accent-hover">
+          Keep looking around
+        </Link>
+        .
+      </p>
     </div>
   );
 }

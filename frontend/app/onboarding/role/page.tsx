@@ -104,6 +104,18 @@ export default function RoleOnboardingPage() {
         <Button className="mt-6 w-full" onClick={confirm} loading={chooseRole.isPending}>
           Continue
         </Button>
+
+        {/* The choice is required before anything else works, so the only honest
+            escape from this screen is signing back out. */}
+        <button
+          onClick={() => {
+            tokenStore.clear();
+            router.replace("/");
+          }}
+          className="mx-auto mt-4 block text-xs text-muted transition hover:text-content"
+        >
+          Not now — sign out and keep browsing
+        </button>
       </Card>
     </div>
   );
