@@ -62,3 +62,16 @@ export function toLocalInputValue(iso: string): string {
 export function fromLocalInputValue(value: string): string {
   return new Date(value).toISOString();
 }
+
+/** Date split into parts, for the stacked date chip on session cards. */
+export function dateParts(iso: string): { weekday: string; day: string; month: string; time: string } {
+  const date = new Date(iso);
+  const pick = (options: Intl.DateTimeFormatOptions) =>
+    new Intl.DateTimeFormat(undefined, options).format(date);
+  return {
+    weekday: pick({ weekday: "short" }),
+    day: pick({ day: "numeric" }),
+    month: pick({ month: "short" }),
+    time: pick({ hour: "2-digit", minute: "2-digit" }),
+  };
+}

@@ -10,10 +10,10 @@ type Size = "sm" | "md";
 
 const VARIANTS: Record<Variant, string> = {
   primary:
-    "bg-accent text-white hover:bg-accent-hover " +
+    "bg-accent text-white shadow-[0_6px_20px_-8px_rgba(139,92,246,0.8)] hover:bg-accent-hover " +
     // A disabled primary should read as inert, not as a dimmed call to action.
-    "disabled:bg-elevated disabled:text-muted disabled:hover:bg-elevated",
-  secondary: "bg-elevated text-content border border-border hover:border-accent/60",
+    "disabled:bg-elevated disabled:text-muted disabled:shadow-none disabled:hover:bg-elevated",
+  secondary: "bg-elevated text-content border border-border hover:border-accent/60 hover:bg-elevated/80",
   ghost: "text-muted hover:text-content hover:bg-elevated",
   destructive: "bg-danger/10 text-danger border border-danger/30 hover:bg-danger/20",
 };
@@ -43,7 +43,7 @@ export function Button({
   return (
     <button
       className={cn(
-        "inline-flex items-center justify-center gap-2 rounded-xl font-medium transition",
+        "inline-flex items-center justify-center gap-2 rounded-xl font-medium transition duration-200 ease-out",
         "disabled:cursor-not-allowed disabled:opacity-50",
         VARIANTS[variant],
         SIZES[size],

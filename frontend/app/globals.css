@@ -5,10 +5,15 @@
 @layer base {
   html {
     color-scheme: dark;
+    -webkit-tap-highlight-color: transparent;
   }
 
   body {
     @apply bg-bg text-content antialiased;
+    /* A very faint grain over the whole page. Flat dark backgrounds band badly
+       on wide gradients; a little noise hides the steps and stops large dark
+       areas looking like dead space. */
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.022'/%3E%3C/svg%3E");
   }
 
   /* One visible, consistent focus ring everywhere instead of per-component guesswork. */
@@ -17,7 +22,28 @@
   }
 
   ::selection {
-    @apply bg-accent/30;
+    @apply bg-accent/30 text-white;
+  }
+
+  /* Headings read better slightly tightened; body text does not. */
+  h1,
+  h2,
+  h3 {
+    @apply tracking-tighter;
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply rounded-full bg-border;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-elevated;
+  }
+  ::-webkit-scrollbar-track {
+    @apply bg-transparent;
   }
 }
 
@@ -26,10 +52,21 @@
     @apply mx-auto w-full max-w-6xl px-4 sm:px-6;
   }
 
-  /* The single gradient in the design: used for the login hero and page headers. */
+  /* The one gradient in the design, used behind page headers and the login hero. */
   .aurora {
     background-image:
-      radial-gradient(900px 380px at 12% -10%, rgba(139, 92, 246, 0.22), transparent 60%),
-      radial-gradient(700px 320px at 88% 0%, rgba(52, 211, 153, 0.1), transparent 55%);
+      radial-gradient(1100px 460px at 8% -20%, rgba(139, 92, 246, 0.26), transparent 62%),
+      radial-gradient(760px 340px at 92% -10%, rgba(45, 212, 191, 0.12), transparent 58%);
+  }
+
+  /* Panels get a top-down sheen so they read as lit from above rather than as
+     flat rectangles with a border drawn round them. */
+  .sheen {
+    @apply bg-surface-sheen;
+  }
+
+  /* Hairline separators that do not look like table borders. */
+  .hairline {
+    @apply border-white/[0.06];
   }
 }

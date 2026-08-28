@@ -61,10 +61,13 @@ export default function SessionDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="page max-w-3xl py-12">
-        <Skeleton className="h-4 w-32" />
-        <Skeleton className="mt-4 h-9 w-2/3" />
-        <Skeleton className="mt-6 h-40 w-full" />
+      <div className="page grid gap-6 py-12 lg:grid-cols-3">
+        <div className="space-y-4 lg:col-span-2">
+          <Skeleton className="h-4 w-32" />
+          <Skeleton className="h-10 w-2/3" />
+          <Skeleton className="h-44 w-full rounded-2xl" />
+        </div>
+        <Skeleton className="h-56 w-full rounded-2xl" />
       </div>
     );
   }
@@ -93,79 +96,111 @@ export default function SessionDetailPage() {
           : "Book a seat";
 
   return (
-    <div className="page max-w-3xl py-10">
-      <Link
-        href="/"
-        className="inline-flex items-center gap-2 text-sm text-muted transition hover:text-content"
-      >
-        <ArrowLeft className="h-4 w-4" /> All sessions
-      </Link>
+    <>
+      <div className="relative overflow-hidden">
+        <div className="aurora absolute inset-0" aria-hidden />
+        <div className="page relative py-8 sm:py-10">
+          <Link
+            href="/"
+            className="inline-flex items-center gap-2 text-sm text-muted transition hover:text-content"
+          >
+            <ArrowLeft className="h-4 w-4" /> All sessions
+          </Link>
 
-      <div className="mt-6 flex flex-wrap items-center gap-2">
-        <SeatsPill session={session} />
-        {myBooking ? (
-          <Badge tone="accent">
-            <CheckCircle2 className="h-3 w-3" /> Booked
-          </Badge>
-        ) : null}
-      </div>
+          <div className="mt-6 flex flex-wrap items-center gap-2">
+            <SeatsPill session={session} />
+            {myBooking ? (
+              <Badge tone="accent">
+                <CheckCircle2 className="h-3 w-3" /> Booked
+              </Badge>
+            ) : null}
+          </div>
 
-      <h1 className="mt-4 text-3xl font-semibold leading-tight tracking-tight">{session.title}</h1>
+          <h1 className="mt-4 max-w-3xl text-3xl font-semibold leading-[1.15] sm:text-4xl">
+            {session.title}
+          </h1>
 
-      <div className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-muted">
-        <span className="flex items-center gap-2">
-          <CalendarDays className="h-4 w-4" />
-          {formatDateTime(session.starts_at)}
-          <span className="text-muted/70">({relativeTime(session.starts_at)})</span>
-        </span>
-        <span className="flex items-center gap-2">
-          <Clock className="h-4 w-4" />
-          {formatDuration(session.duration_minutes)}
-        </span>
-        <span className="flex items-center gap-2">
-          <Users className="h-4 w-4" />
-          {session.seats_taken} / {session.capacity} booked
-        </span>
-      </div>
-
-      <Card className="mt-8 p-6">
-        <p className="whitespace-pre-line text-sm leading-relaxed text-content/90">
-          {session.description || "No description provided."}
-        </p>
-
-        <div className="mt-6 flex items-center gap-3 border-t border-border/70 pt-5">
-          <Avatar src={session.creator.avatar_url} name={session.creator.display_name} size={36} />
-          <div>
-            <p className="text-sm font-medium text-content">{session.creator.display_name}</p>
-            <p className="text-xs text-muted">Session host</p>
+          <div className="mt-5 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-muted">
+            <span className="flex items-center gap-2">
+              <CalendarDays className="h-4 w-4" />
+              {formatDateTime(session.starts_at)}
+              <span className="text-muted/70">({relativeTime(session.starts_at)})</span>
+            </span>
+            <span className="flex items-center gap-2">
+              <Clock className="h-4 w-4" />
+              {formatDuration(session.duration_minutes)}
+            </span>
+            <span className="flex items-center gap-2">
+              <Users className="h-4 w-4" />
+              {session.seats_taken} / {session.capacity} booked
+            </span>
           </div>
         </div>
-      </Card>
+      </div>
 
-      <Card className="mt-6 flex flex-col gap-4 p-6 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <p className="text-2xl font-semibold">{formatPrice(session.price)}</p>
-          <p className="mt-1 flex items-center gap-1.5 text-xs text-muted">
-            <Info className="h-3.5 w-3.5" />
-            Availability is confirmed when your booking is written, not when this page loaded.
-          </p>
+      <div className="page grid gap-6 py-8 lg:grid-cols-3 lg:items-start">
+        <div className="space-y-6 lg:col-span-2">
+          <Card className="p-6 sm:p-7">
+            <h2 className="text-xs font-medium uppercase tracking-looser text-muted">
+              About this session
+            </h2>
+            <p className="mt-4 whitespace-pre-line text-[15px] leading-relaxed text-content/90">
+              {session.description || "No description provided."}
+            </p>
+          </Card>
+
+          <Card className="flex items-center gap-4 p-6">
+            <Avatar src={session.creator.avatar_url} name={session.creator.display_name} size={44} />
+            <div>
+              <p className="text-sm font-medium text-content">{session.creator.display_name}</p>
+              <p className="mt-0.5 text-xs text-muted">Session host</p>
+            </div>
+          </Card>
         </div>
 
-        <div className="flex gap-2">
-          {myBooking ? (
-            <Button variant="destructive" onClick={() => setConfirmingCancel(true)}>
-              Cancel booking
-            </Button>
-          ) : null}
-          <Button
-            onClick={onBook}
-            loading={book.isPending}
-            disabled={authenticated && bookDisabled}
-          >
-            {bookLabel}
-          </Button>
-        </div>
-      </Card>
+        {/* Sticks alongside the content on desktop so the price and the button are
+            never scrolled away from. */}
+        <aside className="lg:sticky lg:top-24">
+          <Card className="p-6">
+            <p className="text-xs font-medium uppercase tracking-looser text-muted">Price</p>
+            <p className="mt-1.5 text-3xl font-semibold tabular-nums text-teal">
+              {formatPrice(session.price)}
+            </p>
+
+            <div className="mt-5 flex items-center justify-between border-t hairline pt-4 text-sm">
+              <span className="text-muted">Seats left</span>
+              <span className="font-medium tabular-nums text-content">
+                {session.seats_remaining} of {session.capacity}
+              </span>
+            </div>
+
+            <div className="mt-5 space-y-2">
+              {myBooking ? (
+                <Button
+                  variant="destructive"
+                  className="w-full"
+                  onClick={() => setConfirmingCancel(true)}
+                >
+                  Cancel booking
+                </Button>
+              ) : null}
+              <Button
+                className="w-full"
+                onClick={onBook}
+                loading={book.isPending}
+                disabled={authenticated && bookDisabled}
+              >
+                {bookLabel}
+              </Button>
+            </div>
+
+            <p className="mt-4 flex items-start gap-1.5 text-xs leading-relaxed text-muted">
+              <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+              Availability is confirmed when your booking is written, not when this page loaded.
+            </p>
+          </Card>
+        </aside>
+      </div>
 
       <ConfirmDialog
         open={confirmingCancel}
@@ -176,6 +211,6 @@ export default function SessionDetailPage() {
         onConfirm={onCancel}
         onCancel={() => setConfirmingCancel(false)}
       />
-    </div>
+    </>
   );
 }

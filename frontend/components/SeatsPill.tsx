@@ -17,5 +17,7 @@ export function SeatsPill({ session }: { session: Session }) {
       </Badge>
     );
   }
-  return <Badge tone="success">{session.seats_remaining} seats left</Badge>;
+  // Neutral when there is plenty of room: colour is reserved for the states
+  // that should make someone hurry, so amber and red actually stand out.
+  return <Badge tone="neutral">{session.seats_remaining} seats left</Badge>;
 }

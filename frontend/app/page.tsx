@@ -32,20 +32,30 @@ export default function CatalogPage() {
   return (
     <>
       <PageHeader
+        eyebrow="Live sessions"
         title="Find your next session"
         subtitle="Breathwork, sound, movement and stillness — hosted by people who do this for a living."
       />
 
       <div className="page mt-8">
-        <div className="relative max-w-md">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
-          <Input
-            value={searchInput}
-            onChange={(event) => setSearchInput(event.target.value)}
-            placeholder="Search sessions"
-            aria-label="Search sessions"
-            className="pl-9"
-          />
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="relative w-full max-w-md">
+            <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
+            <Input
+              value={searchInput}
+              onChange={(event) => setSearchInput(event.target.value)}
+              placeholder="Search sessions"
+              aria-label="Search sessions"
+              className="h-11 rounded-xl pl-10"
+            />
+          </div>
+          {!isLoading && !isError && sessions.length > 0 ? (
+            <p className="text-sm text-muted">
+              <span className="font-medium text-content">{data?.count}</span> session
+              {data?.count === 1 ? "" : "s"}
+              {search ? <> matching “{search}”</> : null}
+            </p>
+          ) : null}
         </div>
 
         <div className="mt-8">
@@ -80,17 +90,11 @@ export default function CatalogPage() {
               }
             />
           ) : (
-            <>
-              <div className="mb-4 text-sm text-muted">
-                {data?.count} session{data?.count === 1 ? "" : "s"}
-                {search ? ` matching “${search}”` : ""}
-              </div>
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {sessions.map((session) => (
-                  <SessionCard key={session.id} session={session} />
-                ))}
-              </div>
-            </>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {sessions.map((session) => (
+                <SessionCard key={session.id} session={session} />
+              ))}
+            </div>
           )}
         </div>
 

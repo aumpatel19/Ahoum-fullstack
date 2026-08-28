@@ -13,6 +13,7 @@ import { Card } from "@/components/ui/Card";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { cn } from "@/lib/cn";
 import { errorMessage } from "@/lib/errors";
 import { formatDateTime, formatPrice } from "@/lib/format";
 import { useCreatorSessions, useDeleteSession } from "@/lib/queries";
@@ -22,7 +23,9 @@ function statusFor(session: CreatorSession) {
   if (!session.is_active) return { tone: "neutral" as const, label: "Removed" };
   if (session.has_started) return { tone: "neutral" as const, label: "Past" };
   if (session.is_sold_out) return { tone: "danger" as const, label: "Sold out" };
-  return { tone: "success" as const, label: "Open" };
+  // Neutral: "Open" is the normal case, so it should not shout louder than
+  // "Sold out" or "Removed".
+  return { tone: "neutral" as const, label: "Open" };
 }
 
 function CreatorContent() {
@@ -116,10 +119,23 @@ function CreatorContent() {
                     {formatDateTime(session.starts_at)}
                   </span>
 
-                  <span className="text-sm sm:col-span-2">
-                    <span className="font-medium text-content">{session.confirmed_bookings}</span>
-                    <span className="text-muted"> / {session.capacity}</span>
-                  </span>
+                  <div className="sm:col-span-2">
+                    <span className="text-sm tabular-nums">
+                      <span className="font-medium text-content">{session.confirmed_bookings}</span>
+                      <span className="text-muted"> / {session.capacity}</span>
+                    </span>
+                    <div className="mt-1.5 h-1 w-full max-w-[120px] overflow-hidden rounded-full bg-elevated">
+                      <div
+                        className={cn(
+                          "h-full rounded-full transition-all duration-500 ease-out",
+                          session.is_sold_out ? "bg-danger" : "bg-accent",
+                        )}
+                        style={{
+                          width: `${Math.min(100, (session.confirmed_bookings / Math.max(session.capacity, 1)) * 100)}%`,
+                        }}
+                      />
+                    </div>
+                  </div>
 
                   <div className="flex gap-2 sm:col-span-2 sm:justify-end">
                     <Link href={`/creator/sessions/${session.id}/edit`}>
