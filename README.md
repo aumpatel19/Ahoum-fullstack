@@ -5,7 +5,7 @@ A small marketplace for live sessions: creators publish them, users book a seat,
 Django 5 + DRF + PostgreSQL behind Next.js 14, four containers, one published port.
 
 ```
-git clone <repo> && cd <repo>
+git clone https://github.com/aumpatel19/Ahoum-fullstack.git && cd Ahoum-fullstack
 cp .env.example .env        # then add your GitHub OAuth client id + secret
 docker compose up --build
 open http://localhost:8080
